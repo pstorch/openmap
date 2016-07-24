@@ -258,6 +258,21 @@ public class MGRSPoint
    }
 
    /**
+    * Convert this MGRSPoint to a LatLon array, and assume a WGS_84 ellipsoid.
+    */
+   public double[] toLatLon() {
+      return toLatLon(Ellipsoid.WGS_84);
+   }
+
+   /**
+    * Convert this MGRSPoint to a LatLonPoint, and use the given ellipsoid.
+    */
+   public double[] toLatLon(Ellipsoid ellip) {
+      return MGRStoLL(this, ellip);
+   }
+
+
+   /**
     * Returns a string representation of the object.
     * 
     * @return String representation
@@ -278,6 +293,17 @@ public class MGRSPoint
     */
    public static LatLonPoint MGRStoLL(MGRSPoint mgrsp, Ellipsoid ellip, LatLonPoint llp) {
       return UTMtoLL(ellip, mgrsp.northing, mgrsp.easting, mgrsp.zone_number, MGRSPoint.MGRSZoneToUTMZone(mgrsp.zone_letter), llp);
+   }
+
+   /**
+    * Create a LatLonPoint from a MGRSPoint.
+    *
+    * @param mgrsp to convert.
+    * @param ellip Ellipsoid for earth model.
+    * @return LatLon array with values converted from MGRS coordinate.
+    */
+   public static double[] MGRStoLL(MGRSPoint mgrsp, Ellipsoid ellip) {
+      return UTMtoLL(ellip, mgrsp.northing, mgrsp.easting, mgrsp.zone_number, MGRSPoint.MGRSZoneToUTMZone(mgrsp.zone_letter));
    }
 
    /**
@@ -306,6 +332,15 @@ public class MGRSPoint
    }
 
    /**
+    * Converts a LatLon array to a MGRS Point, assuming the WGS_84 ellipsoid.
+    *
+    * @return MGRSPoint, or null if something bad happened.
+    */
+   public static MGRSPoint LLtoMGRS(double[] latlon) {
+      return LLtoMGRS(latlon, Ellipsoid.WGS_84, new MGRSPoint());
+   }
+
+   /**
     * Converts a LatLonPoint to a MGRS Point.
     * 
     * @param llpoint the LatLonPoint to convert.
@@ -316,6 +351,19 @@ public class MGRSPoint
     */
    public static MGRSPoint LLtoMGRS(LatLonPoint llpoint, MGRSPoint mgrsp) {
       return LLtoMGRS(llpoint, Ellipsoid.WGS_84, mgrsp);
+   }
+
+   /**
+    * Converts a LatLonPoint to a MGRS Point.
+    *
+    * @param latlon the LatLon array to convert.
+    * @param mgrsp a MGRSPoint to put the results in. If it's null, a MGRSPoint
+    *        will be allocated.
+    * @return MGRSPoint, or null if something bad happened. If a MGRSPoint was
+    *         passed in, it will also be returned on a successful conversion.
+    */
+   public static MGRSPoint LLtoMGRS(double[] latlon, MGRSPoint mgrsp) {
+      return LLtoMGRS(latlon, Ellipsoid.WGS_84, mgrsp);
    }
 
    /**
@@ -338,6 +386,30 @@ public class MGRSPoint
       mgrsp = (MGRSPoint) LLtoUTM(llp, ellip, mgrsp);
       // Need to add this to set the right letter for the latitude.
       mgrsp.zone_letter = mgrsp.getLetterDesignator(llp.getLatitude());
+      mgrsp.resolve();
+      return mgrsp;
+   }
+
+   /**
+    * Create a MGRSPoint from a LatLonPoint.
+    *
+    * @param llp LatLonPoint to convert.
+    * @param ellip Ellipsoid for earth model.
+    * @param mgrsp a MGRSPoint to fill in values for. If null, a new MGRSPoint
+    *        will be returned. If not null, the new values will be set in this
+    *        object, and it will be returned.
+    * @return MGRSPoint with values converted from lat/lon.
+    */
+   public static MGRSPoint LLtoMGRS(double[] latlon, Ellipsoid ellip, MGRSPoint mgrsp) {
+
+      if (mgrsp == null || !(mgrsp instanceof MGRSPoint)) {
+         mgrsp = new MGRSPoint();
+      }
+
+      // Calling LLtoUTM here results in N/S zone letters! wrong!
+      mgrsp = (MGRSPoint) LLtoUTM(latlon, ellip, mgrsp);
+      // Need to add this to set the right letter for the latitude.
+      mgrsp.zone_letter = mgrsp.getLetterDesignator(latlon[0]);
       mgrsp.resolve();
       return mgrsp;
    }

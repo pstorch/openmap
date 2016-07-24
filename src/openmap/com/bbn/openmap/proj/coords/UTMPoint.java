@@ -200,8 +200,29 @@ public class UTMPoint {
 
     /**
      * Converts a set of Longitude and Latitude co-ordinates to UTM given an
+     * ellipsoid
+     *
+     * @param ellip an ellipsoid definition.
+     * @param latlon the coordinate as latitude longitude array to be converted
+     * @param utmpoint A UTMPoint instance to put the results in. If null, a new
+     *        UTMPoint will be allocated.
+     * @return A UTM class instance containing the value of <code>null</code> if
+     *         conversion failed. If you pass in a UTMPoint, it will be returned
+     *         as well if successful.
+     */
+    public static UTMPoint LLtoUTM(double[] latlon, Ellipsoid ellip, UTMPoint utmpoint) {
+
+        // find the native zone for the given llpoint
+        int zoneNumber = getZoneNumber(latlon[0], latlon[1]);
+        boolean isnorthern = (latlon[0] >= 0f);
+
+        return LLtoUTM(latlon, ellip, utmpoint, zoneNumber, isnorthern);
+    }
+
+    /**
+     * Converts a set of Longitude and Latitude co-ordinates to UTM given an
      * ellipsoid and the UTM zone to use.
-     * 
+     *
      * @param ellip an ellipsoid definition.
      * @param llpoint the coordinate to be converted
      * @param utmPoint A UTMPoint instance to put the results in. If null, a new
@@ -213,6 +234,24 @@ public class UTMPoint {
      *         as well if successful.
      */
     public static UTMPoint LLtoUTM(LatLonPoint llpoint, Ellipsoid ellip, UTMPoint utmPoint, int zoneNumber, boolean isNorthern) {
+        return LLtoUTM(new double[] {llpoint.getRadLat(), llpoint.getRadLon()}, ellip, utmPoint, zoneNumber, isNorthern);
+    }
+
+    /**
+     * Converts a set of Longitude and Latitude co-ordinates to UTM given an
+     * ellipsoid and the UTM zone to use.
+     *
+     * @param ellip an ellipsoid definition.
+     * @param latlon the coordinate to be converted as latitude/longitude array
+     * @param utmPoint A UTMPoint instance to put the results in. If null, a new
+     *        UTMPoint will be allocated.
+     * @param zoneNumber the number of the zone
+     * @param isNorthern true if zone is in northern hemisphere
+     * @return A UTM class instance containing the value of <code>null</code> if
+     *         conversion failed. If you pass in a UTMPoint, it will be returned
+     *         as well if successful.
+     */
+    public static UTMPoint LLtoUTM(double[] latlon, Ellipsoid ellip, UTMPoint utmPoint, int zoneNumber, boolean isNorthern) {
 
         double a = ellip.radius;
         double k0 = 0.9996;
@@ -224,8 +263,8 @@ public class UTMPoint {
 
         double N, T, C, A, M;
 
-        double LatRad = llpoint.getRadLat();
-        double LongRad = llpoint.getRadLon();
+        double LatRad = ProjMath.degToRad(latlon[0]);
+        double LongRad = ProjMath.degToRad(latlon[1]);
 
         // in middle of zone
         double LongOrigin = (zoneNumber - 1) * 6 - 180 + 3; // +3 puts origin
@@ -406,7 +445,7 @@ public class UTMPoint {
      * Equations from USGS Bulletin 1532 <br>
      * East Longitudes are positive, West longitudes are negative. <br>
      * North latitudes are positive, South latitudes are negative. <br>
-     * 
+     *
      * @param ellip an ellipsoid definition.
      * @param UTMNorthing A float value for the northing to be converted.
      * @param UTMEasting A float value for the easting to be converted.
@@ -421,6 +460,34 @@ public class UTMPoint {
      */
     public static LatLonPoint UTMtoLL(Ellipsoid ellip, double UTMNorthing, double UTMEasting, int zoneNumber, char zoneLetter,
                                       LatLonPoint llpoint) {
+        final double[] latlon = UTMtoLL(ellip, UTMNorthing, UTMEasting, zoneNumber, zoneLetter);
+
+        if (llpoint != null) {
+            llpoint.setLatLon(latlon[0], latlon[1]);
+            return llpoint;
+        } else {
+            return new LatLonPoint.Double(latlon[0], latlon[1]);
+        }
+
+    }
+
+    /**
+     * Converts UTM coords to lat/long given an ellipsoid.
+     * <p>
+     * Equations from USGS Bulletin 1532 <br>
+     * East Longitudes are positive, West longitudes are negative. <br>
+     * North latitudes are positive, South latitudes are negative. <br>
+     * 
+     * @param ellip an ellipsoid definition.
+     * @param UTMNorthing A float value for the northing to be converted.
+     * @param UTMEasting A float value for the easting to be converted.
+     * @param zoneNumber An int value specifiying the UTM zone number.
+     * @param zoneLetter A char value specifying the ZoneLetter within the
+     *        ZoneNumber.
+     * @return A double array containing the lat/long value, or
+     *         <code>null</code> if conversion failed.
+     */
+    public static double[] UTMtoLL(Ellipsoid ellip, double UTMNorthing, double UTMEasting, int zoneNumber, char zoneLetter) {
 
         // check the ZoneNummber is valid
         if (zoneNumber < 0 || zoneNumber > 60) {
@@ -483,12 +550,7 @@ public class UTMPoint {
                         * D * D * D * D * D / 120)
                         / Math.cos(phi1Rad);
         lon = LongOrigin + ProjMath.radToDeg(lon);
-        if (llpoint != null) {
-            llpoint.setLatLon(lat, lon);
-            return llpoint;
-        } else {
-            return new LatLonPoint.Double(lat, lon);
-        }
+        return new double[]{lat, lon};
     }
 
     /**

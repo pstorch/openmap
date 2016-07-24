@@ -253,8 +253,8 @@ public abstract class LatLonPoint extends Point2D implements Cloneable, Serializ
                 this.lat = (float) ProjMath.radToDeg(lat);
                 this.lon = (float) ProjMath.radToDeg(lon);
             } else {
-                this.lat = (float) Double.normalizeLatitude(lat);
-                this.lon = (float) Double.wrapLongitude(lon);
+                this.lat = (float) LatLonPoint.Double.normalizeLatitude(lat);
+                this.lon = (float) LatLonPoint.Double.wrapLongitude(lon);
                 radLat = (float) ProjMath.degToRad(lat);
                 radLon = (float) ProjMath.degToRad(lon);
             }
